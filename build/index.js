@@ -5,7 +5,7 @@
   zensend = require('zensend');
 
   module.exports = function(ndx) {
-    var callbacks, client, safeCallback;
+    var callbacks, cleanNo, cleanNos, client, fillTemplate, safeCallback;
     client = new zensend.Client(process.env.ZENSEND_KEY || ndx.settings.ZENSEND_KEY);
     callbacks = {
       send: [],
@@ -21,16 +21,69 @@
       }
       return results;
     };
+    cleanNo = function(num) {
+      num = num.replace(/\+|\s/g, '');
+      num = num.replace(/^07/, '447');
+      if (/^447/.test(num)) {
+        return num;
+      } else {
+        return null;
+      }
+    };
+    cleanNos = function(nos) {
+      var i, len, num, outno, outnos;
+      outnos = [];
+      for (i = 0, len = nos.length; i < len; i++) {
+        num = nos[i];
+        if (outno = cleanNo(num)) {
+          outnos.push(outno);
+        }
+      }
+      return outnos;
+    };
+    fillTemplate = function(template, data) {
+      return template.replace(/\{\{(.+?)\}\}/g, function(all, match) {
+        var evalInContext;
+        evalInContext = function(str, context) {
+          return (new Function("with(this) {return " + str + "}")).call(context);
+        };
+        return evalInContext(match, data);
+      });
+    };
     return ndx.zensend = {
-      send: function(args, cb) {
-        return client.sendSms(args, function(err, response) {
-          if (err) {
-            safeCallback('error', err);
-          } else {
-            safeCallback('send', response);
+
+      /*
+      https://zensend.io/documentation
+      args:
+        originator: String
+        body: String
+        numbers: Array[String]
+        * originator_type: String (alpha/msisdn)
+        * time_to_live_in_minutes: Number
+        * encoding: String (gsm/ucs2)
+       */
+      send: function(args, data, cb) {
+        args.numbers = cleanNos(args.numbers);
+        args.body = fillTemplate(args.body, data);
+        if (process.env.ZENSEND_OVERRIDE) {
+          args.numbers = [process.env.ZENSEND_OVERRIDE];
+        }
+        if (!process.env.ZENSEND_DISABLE) {
+          if (args.numbers.length) {
+            return client.sendSms(args, function(err, response) {
+              if (err) {
+                safeCallback('error', err);
+              } else {
+                safeCallback('send', response);
+              }
+              return typeof cb === "function" ? cb(err, response) : void 0;
+            });
           }
-          return typeof cb === "function" ? cb() : void 0;
-        });
+        } else {
+          console.log('sending sms');
+          console.log(args.body);
+          return console.log(args.numbers);
+        }
       }
     };
   };
