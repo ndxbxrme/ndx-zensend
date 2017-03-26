@@ -6,7 +6,6 @@
 
   module.exports = function(ndx) {
     var callbacks, cleanNo, cleanNos, client, fillTemplate, safeCallback;
-    client = new zensend.Client(process.env.ZENSEND_KEY || ndx.settings.ZENSEND_KEY);
     callbacks = {
       send: [],
       error: []
@@ -50,6 +49,9 @@
         return evalInContext(match, data);
       });
     };
+    if (process.env.ZENSEND_KEY || ndx.settings.ZENSEND_KEY) {
+      client = new zensend.Client(process.env.ZENSEND_KEY || ndx.settings.ZENSEND_KEY);
+    }
     return ndx.zensend = {
 
       /*
@@ -63,26 +65,31 @@
         * encoding: String (gsm/ucs2)
        */
       send: function(args, data, cb) {
-        args.numbers = cleanNos(args.numbers);
-        args.body = fillTemplate(args.body, data);
-        if (process.env.ZENSEND_OVERRIDE) {
-          args.numbers = [process.env.ZENSEND_OVERRIDE];
-        }
-        if (!process.env.ZENSEND_DISABLE) {
-          if (args.numbers.length) {
-            return client.sendSms(args, function(err, response) {
-              if (err) {
-                safeCallback('error', err);
-              } else {
-                safeCallback('send', response);
-              }
-              return typeof cb === "function" ? cb(err, response) : void 0;
-            });
+        if (process.env.ZENSEND_KEY || ndx.settings.ZENSEND_KEY) {
+          args.numbers = cleanNos(args.numbers);
+          args.body = fillTemplate(args.body, data);
+          if (process.env.ZENSEND_OVERRIDE) {
+            args.numbers = [process.env.ZENSEND_OVERRIDE];
+          }
+          if (!process.env.ZENSEND_DISABLE) {
+            if (args.numbers.length) {
+              return client.sendSms(args, function(err, response) {
+                if (err) {
+                  safeCallback('error', err);
+                } else {
+                  safeCallback('send', response);
+                }
+                return typeof cb === "function" ? cb(err, response) : void 0;
+              });
+            }
+          } else {
+            console.log('sending sms');
+            console.log(args.body);
+            return console.log(args.numbers);
           }
         } else {
-          console.log('sending sms');
-          console.log(args.body);
-          return console.log(args.numbers);
+          console.log('no zensend key');
+          return typeof cb === "function" ? cb('no key') : void 0;
         }
       }
     };
