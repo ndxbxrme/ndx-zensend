@@ -83,9 +83,7 @@
               });
             }
           } else {
-            console.log('sending sms');
-            console.log(args.body);
-            return console.log(args.numbers);
+            return console.log('sending sms disabled');
           }
         } else {
           console.log('no zensend key');

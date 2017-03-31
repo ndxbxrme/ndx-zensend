@@ -53,9 +53,7 @@ module.exports = (ndx) ->
                 safeCallback 'send', response
               cb? err, response
         else
-          console.log 'sending sms'
-          console.log args.body
-          console.log args.numbers
+          console.log 'sending sms disabled'
       else
         console.log 'no zensend key'
         cb? 'no key'
