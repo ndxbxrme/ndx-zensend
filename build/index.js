@@ -23,7 +23,7 @@
     cleanNo = function(num) {
       num = num.replace(/\+|\s/g, '');
       num = num.replace(/^07/, '447');
-      if (/^447/.test(num)) {
+      if (/^447/.test(num) && /^\d+$/.test(num)) {
         return num;
       } else {
         return null;
@@ -65,9 +65,17 @@
         * encoding: String (gsm/ucs2)
        */
       send: function(args, data, cb) {
+        var e, error;
         if (process.env.ZENSEND_KEY || ndx.settings.ZENSEND_KEY) {
-          args.numbers = cleanNos(args.numbers);
-          args.body = fillTemplate(args.body, data);
+          try {
+            args.numbers = cleanNos(args.numbers);
+            args.body = fillTemplate(args.body, data);
+          } catch (error) {
+            e = error;
+            console.log('there was a problem filling the sms template');
+            console.log(args.body);
+            return typeof cb === "function" ? cb('template error') : void 0;
+          }
           if (process.env.ZENSEND_OVERRIDE) {
             args.numbers = [process.env.ZENSEND_OVERRIDE];
           }
