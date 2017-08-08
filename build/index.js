@@ -41,13 +41,17 @@
       return outnos;
     };
     fillTemplate = function(template, data) {
-      return template.replace(/\{\{(.+?)\}\}/g, function(all, match) {
-        var evalInContext;
-        evalInContext = function(str, context) {
-          return (new Function("with(this) {return " + str + "}")).call(context);
-        };
-        return evalInContext(match, data);
-      });
+      if (template && data) {
+        return template.replace(/\{\{(.+?)\}\}/g, function(all, match) {
+          var evalInContext;
+          evalInContext = function(str, context) {
+            return (new Function("with(this) {return " + str + "}")).call(context);
+          };
+          return evalInContext(match, data);
+        });
+      } else {
+        return '';
+      }
     };
     if (process.env.ZENSEND_KEY || ndx.settings.ZENSEND_KEY) {
       client = new zensend.Client(process.env.ZENSEND_KEY || ndx.settings.ZENSEND_KEY);
@@ -74,6 +78,9 @@
             e = error;
             console.log('there was a problem filling the sms template');
             console.log(args.body);
+            return typeof cb === "function" ? cb('template error') : void 0;
+          }
+          if (!args.body) {
             return typeof cb === "function" ? cb('template error') : void 0;
           }
           if (process.env.ZENSEND_OVERRIDE) {

@@ -20,11 +20,14 @@ module.exports = (ndx) ->
         outnos.push outno
     outnos
   fillTemplate = (template, data) ->
-    template.replace /\{\{(.+?)\}\}/g, (all, match) ->
-      evalInContext = (str, context) ->
-        (new Function("with(this) {return #{str}}"))
-        .call context
-      evalInContext match, data
+    if template and data
+      return template.replace /\{\{(.+?)\}\}/g, (all, match) ->
+        evalInContext = (str, context) ->
+          (new Function("with(this) {return #{str}}"))
+          .call context
+        evalInContext match, data
+    else
+      return ''
   if process.env.ZENSEND_KEY or ndx.settings.ZENSEND_KEY
     client = new zensend.Client(process.env.ZENSEND_KEY or ndx.settings.ZENSEND_KEY)
   ndx.zensend =
@@ -46,6 +49,8 @@ module.exports = (ndx) ->
         catch e
           console.log 'there was a problem filling the sms template'
           console.log args.body
+          return cb? 'template error'
+        if not args.body
           return cb? 'template error'
         if process.env.ZENSEND_OVERRIDE
           args.numbers = [process.env.ZENSEND_OVERRIDE]
